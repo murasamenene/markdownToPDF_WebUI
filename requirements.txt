@@ -1,0 +1,11 @@
+# Web 界面
+pywebview>=6.0
+
+# PDF 预览（不装也能转换，只是没有预览）
+pypdfium2>=4
+Pillow>=10
+
+# 实验功能：书签与文档元数据
+# pypdf>=4
+# 装了 PyMuPDF 会优先使用它（AGPL）
+PyMuPDF>=1.24

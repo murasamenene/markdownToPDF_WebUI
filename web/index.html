@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Markdown 转 PDF</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">MD</div>
+      <div class="brand-text">
+        <h1>Markdown → PDF</h1>
+        <p class="subtitle">pandoc 转换 + Edge/Chrome 渲染 · 中文排版 · 完全本地</p>
+      </div>
+    </div>
+    <div class="env">
+      <span id="env-dot" class="dot wait"></span>
+      <span id="env-text" class="env-text">正在检测 pandoc 与浏览器…</span>
+      <button id="btn-redetect" class="btn ghost small">重新检测</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div class="left">
+      <section class="card files-card">
+        <div class="card-head">
+          <h2>文件</h2>
+          <span id="file-count" class="muted">0 个文件</span>
+        </div>
+        <div class="toolbar">
+          <button id="btn-add-files" class="btn">添加文件</button>
+          <button id="btn-add-folder" class="btn">添加文件夹</button>
+          <button id="btn-remove" class="btn ghost">移除</button>
+          <button id="btn-clear" class="btn ghost">清空</button>
+        </div>
+        <div class="file-table-wrap">
+          <table class="file-table">
+            <thead>
+              <tr>
+                <th class="c-name">文件</th>
+                <th class="c-dir">所在目录</th>
+                <th class="c-status">状态</th>
+                <th class="c-pages">页数</th>
+              </tr>
+            </thead>
+            <tbody id="file-body"></tbody>
+          </table>
+          <div id="file-empty" class="empty-state">
+            还没有文件。点“添加文件”或“添加文件夹”把 Markdown / 文本文件加进来。
+          </div>
+        </div>
+        <div class="field-row">
+          <label for="output-dir">输出目录</label>
+          <input id="output-dir" type="text" placeholder="留空 = 与源文件同目录" spellcheck="false">
+          <button id="btn-output-browse" class="btn small">浏览…</button>
+          <button id="btn-output-open" class="btn ghost small">打开</button>
+        </div>
+        <div class="field-row">
+          <label for="conflict">同名文件</label>
+          <select id="conflict" class="select"></select>
+          <span class="muted hint">重命名会生成“名称 (1).pdf”</span>
+        </div>
+      </section>
+
+      <section class="card settings-card">
+        <div class="card-head">
+          <h2>样式</h2>
+          <div class="preset">
+            <label for="preset" class="muted">预设</label>
+            <select id="preset" class="select"></select>
+            <button id="btn-apply-preset" class="btn small">应用</button>
+          </div>
+        </div>
+        <nav class="tabs" id="tabs">
+          <button class="tab active" data-tab="page" type="button">页面</button>
+          <button class="tab" data-tab="font" type="button">字体</button>
+          <button class="tab" data-tab="paragraph" type="button">段落</button>
+          <button class="tab" data-tab="element" type="button">元素</button>
+          <button class="tab" data-tab="document" type="button">文档</button>
+          <button class="tab" data-tab="advanced" type="button">高级</button>
+        </nav>
+        <div class="tab-body">
+          <!-- ============ 页面 ============ -->
+          <div class="tab-panel active" data-panel="page">
+            <div class="settings-grid">
+              <label for="f-page_size">纸张</label>
+              <select id="f-page_size" class="select" data-style="page_size"></select>
+
+              <label>方向</label>
+              <div class="segmented">
+                <label class="seg"><input type="radio" name="orientation" value="portrait" data-style="orientation"><span>纵向</span></label>
+                <label class="seg"><input type="radio" name="orientation" value="landscape" data-style="orientation"><span>横向</span></label>
+              </div>
+
+              <label>页边距</label>
+              <div class="margin-grid">
+                <span class="muted">上</span><input type="number" data-style="margin_top" min="5" max="50" step="1">
+                <span class="muted">右</span><input type="number" data-style="margin_right" min="5" max="50" step="1">
+                <span class="muted">下</span><input type="number" data-style="margin_bottom" min="5" max="50" step="1">
+                <span class="muted">左</span><input type="number" data-style="margin_left" min="5" max="50" step="1">
+                <span class="muted unit">mm</span>
+              </div>
+
+              <label for="f-page_number">页码</label>
+              <div class="inline-group">
+                <select id="f-page_number" class="select" data-style="page_number"></select>
+                <select class="select" data-style="page_number_format"></select>
+              </div>
+
+              <label for="f-header_text">页眉文字</label>
+              <input id="f-header_text" type="text" data-style="header_text" placeholder="留空不显示">
+
+              <span></span>
+              <div class="check-col">
+                <label class="check"><input type="checkbox" data-style="header_on_first_page"> 首页显示页眉</label>
+                <label class="check"><input type="checkbox" data-style="break_before_h1"> 每个一级标题另起一页</label>
+              </div>
+
+              <div class="span2 muted note">页码与页眉依赖 Chromium 131+ 的 @page 边距盒；浏览器版本过旧时会自动忽略。</div>
+            </div>
+          </div>
+
+          <!-- ============ 字体 ============ -->
+          <div class="tab-panel" data-panel="font">
+            <div class="settings-grid">
+              <label for="f-body_font">正文字体</label>
+              <div class="font-field">
+                <input id="f-body_font" type="text" data-style="body_font" list="font-list" placeholder="Microsoft YaHei" spellcheck="false">
+                <button class="btn ghost small" type="button" data-font-reset="body_font">默认</button>
+              </div>
+
+              <label for="f-heading_font">标题字体</label>
+              <div class="font-field">
+                <input id="f-heading_font" type="text" data-style="heading_font" list="font-list" placeholder="留空 = 跟随正文" spellcheck="false">
+                <button class="btn ghost small" type="button" data-font-reset="heading_font">跟随正文</button>
+              </div>
+
+              <label for="f-mono_font">等宽字体</label>
+              <div class="font-field">
+                <input id="f-mono_font" type="text" data-style="mono_font" list="font-list" placeholder="Consolas" spellcheck="false">
+                <button class="btn ghost small" type="button" data-font-reset="mono_font">默认</button>
+              </div>
+
+              <label for="f-font_size">正文字号</label>
+              <div class="inline-group">
+                <input id="f-font_size" type="number" data-style="font_size_pt" min="6" max="24" step="0.5" list="size-list">
+                <span class="muted">pt</span>
+                <span id="size-hint" class="muted"></span>
+              </div>
+
+              <label for="f-line_height">行距</label>
+              <div class="inline-group">
+                <input id="f-line_height" type="number" data-style="line_height" min="1" max="3" step="0.05">
+                <span class="muted">倍</span>
+              </div>
+
+              <div class="span2 muted note">
+                字体列表来自系统已安装字体；若所选字体未安装，转换时会提示并回退到相近字体。
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ 段落 ============ -->
+          <div class="tab-panel" data-panel="paragraph">
+            <div class="settings-grid">
+              <label for="f-indent">首行缩进</label>
+              <div class="inline-group">
+                <input id="f-indent" type="number" data-style="first_line_indent_em" min="0" max="4" step="0.5">
+                <span class="muted">em（0 = 不缩进）</span>
+              </div>
+
+              <label for="f-para_gap">段间距</label>
+              <div class="inline-group">
+                <input id="f-para_gap" type="number" data-style="paragraph_gap_em" min="0" max="2" step="0.05">
+                <span class="muted">em</span>
+              </div>
+
+              <label for="f-align">对齐方式</label>
+              <select id="f-align" class="select" data-style="text_align"></select>
+
+              <div class="span2 muted note">
+                中文排版建议：两端对齐 + 首行缩进 2em。标题后首段、列表项、表格与脚注已自动取消缩进。
+                讲义类文档若含超长裸链接，建议改用左对齐，避免中文被拉出巨大字距。
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ 元素 ============ -->
+          <div class="tab-panel" data-panel="element">
+            <div class="settings-grid">
+              <label>正文颜色</label>
+              <div class="color-field">
+                <input type="color" data-style="body_color">
+                <input type="text" class="mono" data-color-text="body_color" maxlength="9" spellcheck="false">
+              </div>
+
+              <label>标题颜色</label>
+              <div class="color-field">
+                <input type="color" data-style="heading_color">
+                <input type="text" class="mono" data-color-text="heading_color" maxlength="9" spellcheck="false">
+              </div>
+
+              <label>主题色</label>
+              <div class="color-field">
+                <input type="color" data-style="accent_color">
+                <input type="text" class="mono" data-color-text="accent_color" maxlength="9" spellcheck="false">
+              </div>
+
+              <label>链接颜色</label>
+              <div class="color-field">
+                <input type="color" data-style="link_color">
+                <input type="text" class="mono" data-color-text="link_color" maxlength="9" spellcheck="false">
+              </div>
+
+              <label for="f-table_style">表格样式</label>
+              <select id="f-table_style" class="select" data-style="table_style"></select>
+
+              <label for="f-code_theme">代码主题</label>
+              <select id="f-code_theme" class="select" data-style="code_theme"></select>
+
+              <label for="f-heading_scale">标题缩放</label>
+              <div class="inline-group">
+                <input id="f-heading_scale" type="number" data-style="heading_scale" min="0.8" max="1.6" step="0.05">
+                <span class="muted">倍</span>
+              </div>
+
+              <div class="span2 muted note">主题色用于一级标题下划线、引用块装饰线与列表标记；深色代码主题会自动切换到 breezedark 高亮。</div>
+            </div>
+          </div>
+
+          <!-- ============ 文档 ============ -->
+          <div class="tab-panel" data-panel="document">
+            <div class="settings-grid">
+              <label>目录</label>
+              <div class="inline-group">
+                <label class="check"><input type="checkbox" data-pandoc="toc"> 生成目录</label>
+                <span class="muted">深度</span>
+                <input type="number" data-pandoc="toc_depth" min="1" max="6" step="1">
+              </div>
+
+              <span></span>
+              <div class="check-col">
+                <label class="check"><input type="checkbox" data-style="toc_break"> 目录单独占一页</label>
+                <label class="check"><input type="checkbox" data-pandoc="number_sections"> 章节自动编号</label>
+              </div>
+
+              <label>图片图注</label>
+              <div class="check-col">
+                <label class="check"><input type="checkbox" data-pandoc="implicit_figures" checked> 自动把图片 alt 文本作为图注（隐式图注）</label>
+                <span class="muted note">独占段落的图片会生成 figure/图注；关闭后不再生成，行内图片本来就没有图注。</span>
+              </div>
+
+              <label for="f-math">数学公式</label>
+              <select id="f-math" class="select" data-pandoc="math"></select>
+
+              <label for="f-language">文档语言</label>
+              <select id="f-language" class="select" data-pandoc="language"></select>
+
+              <div class="span2 muted note">默认不设置语言：本机 pandoc 缺少 zh-CN 翻译文件时会输出无害告警，已自动过滤。</div>
+
+              <label for="f-highlight">代码高亮</label>
+              <select id="f-highlight" class="select" data-pandoc="highlight_style"></select>
+
+              <span></span>
+              <div class="check-col">
+                <label class="check"><input type="checkbox" data-pandoc="citeproc"> 处理文献引用（--citeproc）</label>
+                <label class="check"><input type="checkbox" data-pandoc="embed_resources"> 图片/资源内嵌到 HTML（--embed-resources）</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ 高级 ============ -->
+          <div class="tab-panel" data-panel="advanced">
+            <div class="settings-grid">
+              <label for="pandoc-path">pandoc 路径</label>
+              <div class="path-field">
+                <input id="pandoc-path" type="text" placeholder="自动检测" spellcheck="false">
+                <button id="btn-pick-pandoc" class="btn ghost small" type="button">浏览…</button>
+              </div>
+
+              <label for="browser-path">浏览器路径</label>
+              <div class="path-field">
+                <input id="browser-path" type="text" placeholder="自动检测（Edge / Chrome）" spellcheck="false">
+                <button id="btn-pick-browser" class="btn ghost small" type="button">浏览…</button>
+              </div>
+
+              <label>超时</label>
+              <div class="inline-group">
+                <span class="muted">pandoc</span>
+                <input id="timeout-pandoc" type="number" min="10" max="600" step="10" value="120">
+                <span class="muted">秒</span>
+                <span class="muted">浏览器</span>
+                <input id="timeout-browser" type="number" min="10" max="900" step="10" value="180">
+                <span class="muted">秒</span>
+              </div>
+
+              <span></span>
+              <div class="check-col">
+                <label class="check"><input type="checkbox" id="keep-temp"> 保留临时文件（排查问题时使用）</label>
+                <label class="check"><input type="checkbox" id="pdf-info"> 启用书签与文档元数据（实验功能）</label>
+              </div>
+
+              <div class="span2 muted note">书签页码按标题文本在页面文本里匹配推算，复杂文档可能不准；写入失败会自动回滚，不影响 PDF 正文。</div>
+
+              <label class="span2" for="custom-css">自定义 CSS（追加在最后，可覆盖任意规则）</label>
+              <textarea id="custom-css" class="span2 css-editor" data-style="custom_css" rows="8" spellcheck="false" placeholder="/* 例：h1 { letter-spacing: 0.5pt; } */"></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="card preview-card">
+      <div class="card-head">
+        <h2>预览</h2>
+        <div class="preview-tools">
+          <button id="btn-preview" class="btn primary small">预览选中文件</button>
+          <div class="pager">
+            <button id="btn-prev" class="btn icon" type="button" title="上一页">◀</button>
+            <span id="page-label" class="muted">第 0 / 0 页</span>
+            <button id="btn-next" class="btn icon" type="button" title="下一页">▶</button>
+          </div>
+          <select id="zoom" class="select small" title="缩放">
+            <option value="fit">适应宽度</option>
+            <option value="0.75">75%</option>
+            <option value="1">100%</option>
+            <option value="1.25">125%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+          </select>
+          <button id="btn-open-pdf" class="btn ghost small">打开 PDF</button>
+        </div>
+      </div>
+      <div id="preview-body" class="preview-body">
+        <div id="preview-placeholder" class="preview-placeholder">转换完成后在这里预览 PDF</div>
+        <img id="preview-img" alt="PDF 页面预览" hidden>
+      </div>
+      <div class="preview-foot">
+        <span id="preview-hint" class="muted"></span>
+        <span id="preview-meta" class="muted"></span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-left">
+      <button id="btn-start" class="btn primary">开始转换</button>
+      <button id="btn-cancel" class="btn danger" disabled>取消</button>
+    </div>
+    <div class="progress-box">
+      <div class="progress"><div id="progress-bar"></div></div>
+      <div class="status-row">
+        <span id="status">就绪</span>
+        <span id="job-counters" class="muted"></span>
+      </div>
+    </div>
+    <label class="switch"><input type="checkbox" id="show-log" checked> 显示日志</label>
+  </footer>
+
+  <section id="log-panel" class="log-panel">
+    <div class="log-head">
+      <h2>运行日志</h2>
+      <div class="log-actions">
+        <button id="btn-open-log" class="btn ghost small" type="button">打开日志目录</button>
+        <button id="btn-clear-log" class="btn ghost small" type="button">清空</button>
+      </div>
+    </div>
+    <div id="log-list" class="log-list"></div>
+  </section>
+</div>
+
+<datalist id="font-list"></datalist>
+<datalist id="size-list"></datalist>
+
+<div id="dialog-backdrop" class="dialog-backdrop" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+    <div class="dialog-head">
+      <h3 id="dialog-title">提示</h3>
+      <button id="dialog-close" class="btn icon" type="button" title="关闭">✕</button>
+    </div>
+    <div id="dialog-body" class="dialog-body"></div>
+    <div class="dialog-foot">
+      <button id="dialog-copy" class="btn ghost small" type="button">复制信息</button>
+      <span class="spacer"></span>
+      <button id="dialog-cancel" class="btn ghost" type="button">取消</button>
+      <button id="dialog-ok" class="btn primary" type="button">知道了</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
